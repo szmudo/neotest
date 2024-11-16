@@ -263,6 +263,7 @@ function neotest.Client:_update_positions(path, args)
   end
   xpcall(function()
     if lib.files.is_dir(path) then
+      logger.warn("Directory scanner", debug.traceback())
       -- If existing tree then we have to find the point to merge the trees and update that path rather than trying to
       -- merge an orphan. This happens when a whole new directory is found (e.g. renamed an existing one).
       local existing_root = self:get_position(nil, { adapter = adapter_id })
@@ -276,7 +277,7 @@ function neotest.Client:_update_positions(path, args)
           return
         end
       end
-      logger.info("Searching", path, "for test files")
+      logger.info("Searching", path, "for test files", debug.traceback())
       local root_path = existing_root and existing_root:data().path or path
       local files = lib.func_util.filter_list(
         adapter.is_test_file,
@@ -391,7 +392,12 @@ function neotest.Client:_start(args)
   end
 
   autocmd({ "BufAdd", "BufWritePost" }, function(ev)
-    if ev.file == "" then
+    logger.info("File changed", vim.bo.filetype, ev, debug.traceback())
+    if
+      ev.file == ""
+      or vim.bo.filetype == "netrw"
+      or (vim.bo.filetype == "" and lib.files.is_dir(ev.file))
+    then
       return
     end
 
